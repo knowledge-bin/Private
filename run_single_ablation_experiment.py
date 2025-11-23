@@ -29,7 +29,7 @@ from datetime import datetime
 class SingleExperimentRunner:
     """Runs a single ablation experiment with existing PROFILE code"""
     
-    def __init__(self, config_name, attack_name, seed, results_base_dir="ablation_results"):
+    def __init__(self, config_name, attack_name, seed, results_base_dir="ablation_results", num_rounds=50):
         self.config_name = config_name
         self.attack_name = attack_name
         self.seed = seed
@@ -43,44 +43,45 @@ class SingleExperimentRunner:
         self.exp_dir = self.results_dir / self.experiment_name
         self.exp_dir.mkdir(parents=True, exist_ok=True)
         
-        # Configuration mapping
+        # Configuration mapping (using disable flags as PROFILE_server.py expects)
         self.configs = {
             'A_Bucketing_Only': {
                 'num_buckets': 16,
-                'use_he': True,
-                'dp_epsilon': None,  # No DP
-                'num_validators': 0,  # No validators
+                'disable_he': False,       # HE enabled
+                'disable_dp': True,        # DP disabled
+                'disable_validation': True,   # Validators disabled
             },
             'B_Bucketing_DP': {
                 'num_buckets': 16,
-                'use_he': True,
-                'dp_epsilon': 1.0,  # DP enabled
-                'num_validators': 0,
+                'disable_he': False,       # HE enabled
+                'disable_dp': False,       # DP enabled (epsilon=1.0 hardcoded in server)
+                'disable_validation': True,   # Validators disabled
             },
             'C_Bucketing_Validators': {
                 'num_buckets': 16,
-                'use_he': True,
-                'dp_epsilon': None,
-                'num_validators': 5,  # 5 validators per bucket
+                'disable_he': False,       # HE enabled
+                'disable_dp': True,        # DP disabled
+                'disable_validation': False,  # Validators enabled
             },
             'D_PROFILE_Full': {
                 'num_buckets': 16,
-                'use_he': True,
-                'dp_epsilon': 1.0,
-                'num_validators': 5,
+                'disable_he': False,       # HE enabled
+                'disable_dp': False,       # DP enabled
+                'disable_validation': False,  # Validators enabled (all components)
             },
             'E_FedAvg_Baseline': {
-                'num_buckets': 1,  # Effectively no bucketing
-                'use_he': True,  # Still use secure agg
-                'dp_epsilon': None,
-                'num_validators': 0,
+                'num_buckets': 1,          # Effectively no bucketing (single bucket = FedAvg)
+                'disable_he': False,       # Still use HE for fairness
+                'disable_dp': True,        # DP disabled
+                'disable_validation': True,   # Validators disabled
             }
         }
         
         # Experiment parameters
         self.num_clients = 50
-        self.num_rounds = 50
-        self.malicious_count = 10
+        self.num_rounds = num_rounds  # Now customizable
+        self.malicious_fraction = 0.3  # 30% malicious (matches paper contribution)
+        self.malicious_count = int(self.num_clients * self.malicious_fraction)  # 15 clients
         self.malicious_ids = list(range(self.malicious_count))
         
         # Get config
@@ -130,9 +131,12 @@ class SingleExperimentRunner:
         
         server_log = self.exp_dir / 'server.log'
         
+        # Use homomorphic conda environment
+        conda_python = '/home/bderessa/anaconda3/envs/homomorphic/bin/python'
+        
         # Build server command
         cmd = [
-            sys.executable,
+            conda_python,
             'PROFILE_server.py',
             '--dataset', 'mnist',
             '--num_clients', str(self.num_clients),
@@ -141,13 +145,15 @@ class SingleExperimentRunner:
             '--seed', str(self.seed)
         ]
         
-        # Add DP if enabled
-        if self.config.get('dp_epsilon'):
-            cmd.extend(['--dp_epsilon', str(self.config['dp_epsilon'])])
+        # Add disable flags
+        if self.config.get('disable_he', False):
+            cmd.append('--disable_he')
         
-        # Add validators if enabled
-        if self.config.get('num_validators', 0) > 0:
-            cmd.extend(['--num_validators', str(self.config['num_validators'])])
+        if self.config.get('disable_dp', False):
+            cmd.append('--disable_dp')
+        
+        if self.config.get('disable_validation', False):
+            cmd.append('--disable_validation')
         
         print(f"Server command: {' '.join(cmd)}")
         
@@ -182,9 +188,12 @@ class SingleExperimentRunner:
             
             client_log = self.exp_dir / f'client_{client_id}.log'
             
+            # Use homomorphic conda environment
+            conda_python = '/home/bderessa/anaconda3/envs/homomorphic/bin/python'
+            
             # Build client command
             cmd = [
-                sys.executable,
+                conda_python,
                 'Clean-client2.py',
                 '--client_id', str(client_id),
                 '--dataset', 'mnist',
@@ -372,6 +381,12 @@ def main():
         default='ablation_results',
         help='Base directory for results'
     )
+    parser.add_argument(
+        '--num-rounds',
+        type=int,
+        default=50,
+        help='Number of training rounds (default: 50)'
+    )
     
     args = parser.parse_args()
     
@@ -380,7 +395,8 @@ def main():
         config_name=args.config,
         attack_name=args.attack,
         seed=args.seed,
-        results_base_dir=args.results_dir
+        results_base_dir=args.results_dir,
+        num_rounds=args.num_rounds
     )
     
     success = runner.run()
