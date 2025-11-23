@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Experimental results and logs
+ablation_results*/
+experiment_results_*/
+metrics/
+logs/
+*.log
+data/
+aggregated_weights/
+analysis_output/
+
+# JSON results (except config files)
+*_results_*.json
+profile_*.json
+focused_test_results_*.json
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Large data files
+*.h5
+*.pkl
+*.pt
+*.pth
+
+# Keep only essential configs
+!requirements.txt
+!experiment_config.json
