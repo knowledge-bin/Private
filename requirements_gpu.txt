@@ -1,5 +1,7 @@
 # Core FL Framework
-flwr>=1.5.0
+# NOTE: MUST install custom Flower from GitHub (see DEPENDENCIES.md)
+# DO NOT use: pip install flwr
+# INSTEAD use: git clone https://github.com/knowledge-bin/fl-core-bin.git && cd fl-core-bin && pip install -e .
 
 # Deep Learning (GPU-enabled)
 tensorflow-gpu>=2.16.0
@@ -7,7 +9,8 @@ torch>=2.0.0
 torchvision>=0.15.0
 
 # Homomorphic Encryption
-# Note: Install rlwe_xmkckks from local package (see README)
+# NOTE: MUST install encryption library from GitHub (see DEPENDENCIES.md)
+# git clone https://github.com/knowledge-bin/crypto-utils.git && cd crypto-utils && pip install -e .
 
 # Data Science
 numpy>=1.24.0,<2.0.0

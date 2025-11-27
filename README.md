@@ -8,7 +8,10 @@ PROFILE is a federated learning framework that combines:
 - **Bucketing**: Groups similar clients to limit adversarial influence
 - **xMK-CKKS Homomorphic Encryption**: Secure aggregation without decryption
 - **Differential Privacy**: Gradient perturbation for privacy protection
-- **Byzantine Validators**: Detects and filters malicious updates
+- **Byzantine Validators**: Reputation-based ensemble detection of malicious updates
+
+**Architecture**: All PROFILE features are **integrated into the custom Flower server** (3857 lines).  
+Reviewers will use this same integrated system by installing our modified `flower-xmkckks` package.
 
 This repository contains the complete implementation for running ablation experiments on GPU servers.
 
@@ -21,6 +24,9 @@ This repository contains the complete implementation for running ablation experi
 
 ## 🚀 Quick Start
 
+⚠️ **IMPORTANT**: PROFILE requires **custom Flower** with integrated PROFILE features (bucketing, validators, reputation, DP, HE).  
+📖 See `DEPENDENCIES.md` for why standard `pip install flwr` won't work - you need our `flower-xmkckks` repo.
+
 ### 1. Clone Repository
 
 ```bash
@@ -28,30 +34,21 @@ git clone https://github.com/YOUR_USERNAME/profile-ablation.git
 cd profile-ablation
 ```
 
-### 2. Install Dependencies
+### 2. Install Dependencies (Automatic)
 
 ```bash
-# Setup GPU environment (automatic)
+# This script installs custom Flower + RLWE-xMKCKKS automatically
 ./setup_gpu_environment.sh
-
-# Or manual setup
-conda create -n profile_gpu python=3.10 -y
-conda activate profile_gpu
-conda install pytorch torchvision pytorch-cuda=12.1 -c pytorch -c nvidia -y
-pip install tensorflow[and-cuda]
-pip install -r requirements_gpu.txt
 ```
 
-### 3. Install xMK-CKKS Encryption
+**What it does:**
+- Creates conda environment with Python 3.10
+- Installs PyTorch + TensorFlow with GPU support
+- Clones and installs **custom Flower** from https://github.com/knowledge-bin/fl-core-bin
+- Clones and installs **encryption library** from https://github.com/knowledge-bin/crypto-utils
+- Installs all other dependencies
 
-```bash
-git clone https://github.com/MetisPrometheus/rlwe-xmkckks.git
-cd rlwe-xmkckks
-pip install -e .
-cd ..
-```
-
-### 4. Verify Setup
+### 3. Verify Setup
 
 ```bash
 python test_ablation_setup.py
@@ -59,7 +56,9 @@ python test_ablation_setup.py
 
 Expected: `✅ All 6 tests pass`
 
-### 5. Run Experiments
+**If tests fail**, see `DEPENDENCIES.md` for troubleshooting.
+
+### 4. Run Experiments
 
 ```bash
 # Single test experiment (~1 hour)
@@ -72,7 +71,7 @@ python run_single_ablation_experiment.py \
 ./run_all_30_experiments.sh
 ```
 
-### 6. Generate Analysis
+### 5. Generate Analysis
 
 ```bash
 python plot_ablation_results.py ablation_results_YYYYMMDD_HHMMSS/
@@ -80,6 +79,7 @@ python plot_ablation_results.py ablation_results_YYYYMMDD_HHMMSS/
 
 ## 📚 Documentation
 
+- **DEPENDENCIES.md** - ⭐ **START HERE**: Custom library requirements and installation
 - **README_ABLATION.md** - Detailed setup and usage guide
 - **START_HERE.md** - Quick reference for running experiments
 - **ABLATION_STUDY_README.md** - Complete experiment specification

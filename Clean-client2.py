@@ -1,7 +1,6 @@
 
 
 
-# # Standard Libraries
 # import importlib
 # import math
 # import os
@@ -14,7 +13,6 @@
 # import datetime
 # import csv  # Now correctly imported
 # from detect import *
-# # Third Party Imports
 # import flwr as fl
 # import tensorflow as tf
 # from memory_profiler import memory_usage
@@ -22,16 +20,12 @@
 # from sklearn.metrics import log_loss, precision_score, recall_score, f1_score, confusion_matrix, classification_report
 # import numpy as np
 
-# # Import FederatedDataLoader
 # from federated_data_loader import FederatedDataLoader, FederatedPoisoningExperiment
 
-# # Get absolute paths to let a user run the script from anywhere
 # current_directory = os.path.dirname(os.path.abspath(__file__))
 # parent_directory = os.path.basename(current_directory)
 # working_directory = os.getcwd()
-# # Add parent directory to Python's module search path
 # sys.path.append(os.path.join(current_directory, '..'))
-# # Compare paths
 # if current_directory == working_directory:
 #     from cnn import CNN
 #     import utils

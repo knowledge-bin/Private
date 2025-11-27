@@ -1,989 +1,178 @@
-# #!/usr/bin/env python3
-# # PROFILE_server.py
-
-# # import importlib
-# # import math
-# # import os
-# # import sys
-# # import time
-# # import random
-# # import concurrent.futures
-# # import flwr as fl
-# # import numpy as np  # Needed for evaluation function
-# # from typing import Dict, List, Optional, Tuple
-# # from load_covid import load_mnist_data
-# # from flwr.common import NDArrays, Scalar, Parameters, GetParametersIns, ReconnectIns
-# # from flwr.server.strategy import FedAvg
-# # from memory_profiler import memory_usage
-# # from rlwe_xmkckks import RLWE
-# # from sklearn.metrics import classification_report, log_loss
-# # import multiprocessing
-# # import threading
-
-# # # Local Imports
-# # from load_covid import *
-# # # Get absolute paths to let a user run the script from anywhere
-# # current_directory = os.path.dirname(os.path.abspath(__file__))
-# # parent_directory = os.path.basename(current_directory)
-# # working_directory = os.getcwd()
-# # sys.path.append(os.path.join(current_directory, '..'))
-# # if current_directory == working_directory:
-# #     from cnn import CNN
-# #     import utils
-# # else:
-# #     CNN = importlib.import_module(f"{parent_directory}.cnn").CNN
-# #     import utils
-
-# # # --- Helper functions for client communication using concurrent futures ---
-# # def my_fit_clients(client_instructions, max_workers, timeout):
-# #     """Send fit instructions concurrently to clients.
-# #        Returns (results, failures) where each result is a tuple (client, fit_res)."""
-# #     results = []
-# #     failures = []
-# #     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-# #         future_to_client = {
-# #             executor.submit(lambda pair: (pair[0], pair[0].fit(pair[1], timeout=timeout)), instr): instr
-# #             for instr in client_instructions
-# #         }
-# #         for future in concurrent.futures.as_completed(future_to_client):
-# #             try:
-# #                 res = future.result()
-# #                 results.append(res)
-# #             except Exception as e:
-# #                 failures.append(e)
-# #     return results, failures
-
-# # def my_evaluate_clients(client_instructions, max_workers, timeout):
-# #     """Send evaluate instructions concurrently to clients.
-# #        Returns (results, failures) where each result is a tuple (client, eval_res)."""
-# #     results = []
-# #     failures = []
-# #     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-# #         future_to_client = {
-# #             executor.submit(lambda pair: (pair[0], pair[0].evaluate(pair[1], timeout=timeout)), instr): instr
-# #             for instr in client_instructions
-# #         }
-# #         for future in concurrent.futures.as_completed(future_to_client):
-# #             try:
-# #                 res = future.result()
-# #                 results.append(res)
-# #             except Exception as e:
-# #                 failures.append(e)
-# #     return results, failures
-
-# # def my_reconnect_clients(client_instructions, max_workers, timeout):
-# #     """Send reconnect instructions concurrently to clients.
-# #        Returns (results, failures) where each result is a tuple (client, disconnect_res)."""
-# #     results = []
-# #     failures = []
-# #     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-# #         future_to_client = {
-# #             executor.submit(lambda pair: (pair[0], pair[0].reconnect(pair[1], timeout=timeout)), instr): instr
-# #             for instr in client_instructions
-# #         }
-# #         for future in concurrent.futures.as_completed(future_to_client):
-# #             try:
-# #                 res = future.result()
-# #                 results.append(res)
-# #             except Exception as e:
-# #                 failures.append(e)
-# #     return results, failures
-
-# # # --- Evaluation Function for Server-side Evaluation ---
-# # def get_evaluate_fn(model):
-# #     """Return an evaluation function for server-side evaluation."""
-# #     # Load MNIST test data to avoid overhead in evaluation
-# #     _, _, (X_test, y_test) = load_mnist_data()
-
-# #     def evaluate(
-# #         server_round: int, parameters: NDArrays, config: Dict[str, Scalar]
-# #     ) -> Optional[Tuple[float, Dict[str, Scalar]]]:
-# #         utils.set_model_params(model, parameters)
-# #         y_pred = model.model.predict(X_test)
-# #         predicted = np.argmax(y_pred, axis=-1)
-# #         true_labels = y_test
-# #         accuracy = (true_labels == predicted).mean()
-# #         loss = log_loss(y_test, y_pred)
-# #         print(classification_report(true_labels, predicted))
-# #         return loss, {"accuracy": accuracy}
-# #     return evaluate
-
-# # def fit_round(server_round: int) -> Dict:
-# #     """Send round number to client."""
-# #     return {"server_round": server_round}
-
-# # # --- Custom Strategy ---
-# # class CustomFedAvg(FedAvg):
-# #     def __init__(self, rlwe_instance: RLWE, num_groups: int = 1, *args, **kwargs):
-# #         super().__init__(*args, **kwargs)
-# #         self.rlwe = rlwe_instance
-# #         self.num_groups = num_groups
-
-# # # --- Helper: Group Clients into Buckets ---
-# # def group_clients(clients: List[fl.server.client_proxy.ClientProxy], num_groups: int) -> List[List[fl.server.client_proxy.ClientProxy]]:
-# #     """Divide clients into num_groups buckets using simple slicing."""
-# #     return [clients[i::num_groups] for i in range(num_groups)]
-
-# # # --- Custom Server with Bucketting (Group-Based Aggregation) ---
-# # from flwr.server.client_manager import SimpleClientManager
-# # from flwr.server.history import History
-
-# # class Server(fl.server.Server):
-# #     def __init__(
-# #         self,
-# #         *,
-# #         client_manager: fl.server.client_manager.ClientManager,
-# #         strategy: Optional[fl.server.strategy.Strategy] = None,
-# #         num_groups: int = 1
-# #     ) -> None:
-# #         super().__init__(client_manager=client_manager, strategy=strategy)
-# #         self.parameters: Parameters = Parameters(tensors=[], tensor_type="numpy.ndarray")
-# #         self.max_workers: Optional[int] = None
-# #         self.num_groups = num_groups
-
-# #     def set_max_workers(self, max_workers: Optional[int]) -> None:
-# #         self.max_workers = max_workers
-
-# #     def set_strategy(self, strategy: fl.server.strategy.Strategy) -> None:
-# #         self.strategy = strategy
-
-# #     def client_manager(self) -> fl.server.client_manager.ClientManager:
-# #         return self._client_manager
-
-# #     def fit(self, num_rounds: int, timeout: Optional[float]) -> History:
-# #         history = History()
-
-# #         print("[Server] Initializing global parameters")
-# #         self.parameters = self._get_initial_parameters(timeout=timeout)
-# #         print("[Server] Evaluating initial parameters")
-# #         res = self.strategy.evaluate(0, parameters=self.parameters)
-# #         if res is not None:
-# #             print(f"[Server] Initial parameters (loss, metrics): {res[0]}, {res[1]}")
-# #             history.add_loss_centralized(server_round=0, loss=res[0])
-# #             history.add_metrics_centralized(server_round=0, metrics=res[1])
-
-# #         # RLWE Setup: generate vector_a
-# #         self.strategy.rlwe.generate_vector_a()
-# #         vector_a = self.strategy.rlwe.get_vector_a().poly_to_list()
-
-# #         # Group clients
-# #         all_clients = list(self._client_manager.clients.values())
-# #         groups = group_clients(all_clients, self.num_groups)
-
-# #         print(f"[Server] Total clients: {len(all_clients)}, Divided into {self.num_groups} groups")
-# #         for idx, group in enumerate(groups):
-# #             print(f"[Server] Group {idx} size: {len(group)}")
-
-# #         # Public key aggregation per group
-# #         for group_idx, clients_in_group in enumerate(groups):
-# #             print(f"\n[Server] Processing public key aggregation for Group {group_idx}")
-# #             vector_b_list = []
-# #             for c in clients_in_group:
-# #                 b = c.request_vec_b(vector_a, timeout=timeout)
-# #                 vector_b_list.append(self.strategy.rlwe.list_to_poly(b, "q"))
-# #             if vector_b_list:
-# #                 allpub = sum(vector_b_list[1:], start=vector_b_list[0]).poly_to_list()
-# #                 for c in clients_in_group:
-# #                     c.request_allpub_confirmation(allpub, timeout=timeout)
-# #                 print(f"[Server] Group {group_idx} public key aggregation completed.")
-# #             else:
-# #                 print(f"[Server] Warning: Group {group_idx} is empty!")
-
-# #         # Main training rounds: process each group separately.
-# #         print("[Server] Starting federated learning rounds")
-# #         overall_start = time.time()
-# #         for current_round in range(1, num_rounds + 1):
-# #             print(f"\n=== Round {current_round} ===")
-# #             for group_idx, clients_in_group in enumerate(groups):
-# #                 print(f"\n--- Group {group_idx} Training ---")
-# #                 res_fit = self.fit_round_on_clients(
-# #                     server_round=current_round, timeout=timeout, group_clients=clients_in_group
-# #                 )
-# #                 if res_fit is None:
-# #                     print(f"[Server] Round {current_round}, Group {group_idx}: No clients participated in training.")
-# #                     continue
-
-# #                 # Secure weight aggregation per group
-# #                 request = "full" if current_round == 1 else "gradient"
-# #                 c0sum, c1sum = None, None
-# #                 print(f"[Server] Group {group_idx}: Aggregating encrypted parameters.")
-# #                 for i, c in enumerate(clients_in_group):
-# #                     c0, c1 = c.request_encrypted_parameters(request, timeout=timeout)
-# #                     c0p = self.strategy.rlwe.list_to_poly(c0, "q")
-# #                     c1p = self.strategy.rlwe.list_to_poly(c1, "q")
-# #                     if i == 0:
-# #                         c0sum, c1sum = c0p, c1p
-# #                     else:
-# #                         c0sum += c0p
-# #                         c1sum += c1p
-# #                 print(f"[Server] Group {group_idx}: Aggregated ciphertext computed.")
-
-# #                 c1sum_list = c1sum.poly_to_list()
-# #                 dsum = None
-# #                 print(f"[Server] Group {group_idx}: Requesting decryption shares.")
-# #                 for i, c in enumerate(clients_in_group):
-# #                     d = c.request_decryption_share(c1sum_list, timeout=timeout)
-# #                     d_poly = self.strategy.rlwe.list_to_poly(d, "t")
-# #                     if i == 0:
-# #                         dsum = d_poly
-# #                     else:
-# #                         dsum += d_poly
-
-# #                 plaintext = c0sum + dsum
-# #                 plaintext = plaintext.testing(self.strategy.rlwe.t).poly_to_list()
-# #                 avg_weights = [round(w / len(clients_in_group)) for w in plaintext]
-# #                 for c in clients_in_group:
-# #                     c.request_modelupdate_confirmation(avg_weights, timeout=timeout)
-# #                 print(f"[Server] Group {group_idx}: Model update confirmed.")
-# #             print(f"[Server] Round {current_round} completed in {time.time() - overall_start:.2f} seconds")
-# #         print("[Server] Federated learning complete.")
-# #         return history
-# #     # Helper: Run fit round on a subset of clients (group_clients)
-# #     def fit_round_on_clients(
-# #         self,
-# #         server_round: int,
-# #         timeout: Optional[float],
-# #         group_clients: List[fl.server.client_proxy.ClientProxy],
-# #     ) -> Optional[Tuple[Optional[Parameters], Dict[str, Scalar], Tuple[List, List]]]:
-# #         # Create a temporary client manager with only these clients.
-# #         temp_cm = SimpleClientManager()
-# #         temp_cm.clients = {str(id(c)): c for c in group_clients}
-# #         client_instructions = self.strategy.configure_fit(
-# #             server_round=server_round,
-# #             parameters=self.parameters,
-# #             client_manager=temp_cm,
-# #         )
-# #         if not client_instructions:
-# #             print(f"[Server] fit_round {server_round}: No clients selected for this group; canceling.")
-# #             return None
-# #         results, failures = my_fit_clients(
-# #             client_instructions=client_instructions,
-# #             max_workers=self.max_workers,
-# #             timeout=timeout,
-# #         )
-# #         aggregated_result = self.strategy.aggregate_fit(server_round, results, failures)
-# #         parameters_aggregated, metrics_aggregated = aggregated_result
-# #         print(f"[Server] fit_round {server_round}: Aggregated training results computed for group.")
-# #         return parameters_aggregated, metrics_aggregated, (results, failures)
-
-# #     def evaluate_round(
-# #         self,
-# #         server_round: int,
-# #         timeout: Optional[float],
-# #     ) -> Optional[Tuple[Optional[float], Dict[str, Scalar], Tuple[List, List]]]:
-# #         client_instructions = self.strategy.configure_evaluate(
-# #             server_round=server_round,
-# #             parameters=self.parameters,
-# #             client_manager=self._client_manager,
-# #         )
-# #         if not client_instructions:
-# #             print(f"[Server] evaluate_round {server_round}: No clients selected; canceling.")
-# #             return None
-# #         results, failures = my_evaluate_clients(
-# #             client_instructions,
-# #             max_workers=self.max_workers,
-# #             timeout=timeout,
-# #         )
-# #         aggregated_result = self.strategy.aggregate_evaluate(server_round, results, failures)
-# #         loss_aggregated, metrics_aggregated = aggregated_result
-# #         return loss_aggregated, metrics_aggregated, (results, failures)
-
-# #     def disconnect_all_clients(self, timeout: Optional[float]) -> None:
-# #         all_clients = self._client_manager.all()
-# #         clients = [all_clients[k] for k in all_clients.keys()]
-# #         instruction = ReconnectIns(seconds=None)
-# #         client_instructions = [(client_proxy, instruction) for client_proxy in clients]
-# #         _ = my_reconnect_clients(
-# #             client_instructions=client_instructions,
-# #             max_workers=self.max_workers,
-# #             timeout=timeout,
-# #         )
-
-# #     def _get_initial_parameters(self, timeout: Optional[float]) -> Parameters:
-# #         parameters: Optional[Parameters] = self.strategy.initialize_parameters(
-# #             client_manager=self._client_manager
-# #         )
-# #         if parameters is not None:
-# #             print("[Server] Using initial parameters provided by strategy")
-# #             return parameters
-# #         print("[Server] Requesting initial parameters from one random client")
-# #         random_client = self._client_manager.sample(1)[0]
-# #         ins = GetParametersIns(config={})
-# #         get_parameters_res = random_client.get_parameters(ins=ins, timeout=timeout)
-# #         print("[Server] Received initial parameters from one random client")
-# #         return get_parameters_res.parameters
-
-# # # --- Main: Start the Server and Measure Memory Usage ---
-# # if __name__ == "__main__":
-# #     def measure_memory():
-# #         start_time = time.time()
-
-# #         # RLWE SETTINGS (dynamically)
-# #         WEIGHT_DECIMALS = 8
-# #         model = CNN(WEIGHT_DECIMALS)
-# #         utils.set_initial_params(model)
-# #         params, _ = utils.get_flat_weights(model)
-# #         num_weights = len(params)
-# #         n = 2 ** math.ceil(math.log2(num_weights))
-# #         print(f"n: {n}")
-
-# #         max_weight_value = 10 ** WEIGHT_DECIMALS
-# #         num_clients = 2
-# #         t = utils.next_prime(num_clients * max_weight_value * 2)
-# #         print(f"t: {t}")
-
-# #         q = utils.next_prime(t * 50)
-# #         print(f"q: {q}")
-
-# #         std = 3
-# #         rlwe = RLWE(n, q, t, std)
-
-# #         # Define number of groups (e.g., 3 for bucketing)
-# #         NUM_GROUPS = 2
-
-# #         # Custom Strategy with number of groups passed
-# #         strategy = CustomFedAvg(
-# #             min_available_clients=2,
-# #             min_fit_clients=2,
-# #             evaluate_fn=get_evaluate_fn(model),
-# #             on_fit_config_fn=fit_round,
-# #             rlwe_instance=rlwe,
-# #             num_groups=NUM_GROUPS
-# #         )
-
-# #         client_manager = fl.server.SimpleClientManager()
-# #         server = Server(strategy=strategy, client_manager=client_manager, num_groups=NUM_GROUPS)
-
-# #         fl.server.start_server(
-# #             server_address="127.0.0.1:9010",
-# #             server=server,
-# #             config=fl.server.ServerConfig(num_rounds=5)
-# #         )
-
-# #         exec_time = time.time() - start_time
-# #         print("Execution time:", exec_time)
-
-# #     mem_usage = memory_usage(measure_memory)
-# #     print("Memory usage (in MB):", max(mem_usage))
-
-
-
-
-
-
-
-
-
-
-# # #!/usr/bin/env python3
-# # # PROFILE_server.py
-
-# # import socket
-# # # Standard Libraries
-# # import importlib
-# # import math
-# # import os
-# # import sys
-# # import time
-# # import random
-# # import flwr as fl
-# # from typing import Dict, List, Optional, Tuple
-# # from load_covid import load_mnist_data
-# # from flwr.common import NDArrays, Scalar
-# # from flwr.server.strategy import FedAvg
-# # from memory_profiler import memory_usage
-# # from rlwe_xmkckks import RLWE
-# # from sklearn.metrics import classification_report, log_loss
-# # import multiprocessing
-# # import threading
-# # from sklearn.metrics import classification_report, log_loss, precision_score, recall_score, f1_score, confusion_matrix
-# # # Local Imports
-# # from load_covid import *
-
-# # # Local Imports
-# # from load_covid import *
-# # # Get absolute paths to let a user run the script from anywhere
-# # current_directory = os.path.dirname(os.path.abspath(__file__))
-# # parent_directory = os.path.basename(current_directory)
-# # working_directory = os.getcwd()
-# # # Add parent directory to Python's module search path
-# # sys.path.append(os.path.join(current_directory, '..'))
-# # # Compare paths
-# # if current_directory == working_directory:
-# #     from cnn import CNN
-# #     import utils
-# # else:
-# #     # Add current directory to Python's module search path
-# #     CNN = importlib.import_module(f"{parent_directory}.cnn").CNN
-# #     import utils
-
-
-
-# # def fit_round(server_round: int) -> Dict:
-# #     """Send round number to client."""
-# #     return {"server_round": server_round}
-
-
-# # def get_evaluate_fn(model):
-# #     """Return an evaluation function for server-side evaluation."""
-# #     # Load MNIST test data here to avoid the overhead of doing it in 'evaluate' itself
-# #     _, _, (X_test, y_test) = load_mnist_data()
-
-# #     # The 'evaluate' function will be called after every round
-# #     def evaluate(server_round: int, parameters: NDArrays, config: Dict[str, Scalar]) -> Optional[Tuple[float, Dict[str, Scalar]]]:
-# #         utils.set_model_params(model, parameters)
-
-# #         y_pred = model.model.predict(X_test)
-# #         predicted = np.argmax(y_pred, axis=-1)
-
-# #         # FIXED LINE:
-# #         true_labels = y_test  # Remove np.argmax if y_test is already in label form
-
-# #         accuracy = np.equal(true_labels, predicted).mean()
-# #         loss = log_loss(y_test, y_pred)
-
-# #         print(classification_report(true_labels, predicted))
-
-# #         return loss, {"accuracy": accuracy}
-
-# #     return evaluate
-
-
-
-
-# # class CustomFedAvg(FedAvg):
-# #     def __init__(
-# #         self, 
-# #         rlwe_instance: RLWE, 
-# #         num_groups: int = 1,  # Default number of buckets/groups
-# #         eval_fn=None,
-# #         *args, 
-# #         **kwargs
-# #     ):
-# #         super().__init__(*args, **kwargs)
-# #         self.rlwe = rlwe_instance
-# #         self.num_groups = num_groups  # Number of buckets to divide clients into
-# #         self.bucket_models = {}  # Store models for each bucket
-# #         self.bucket_weights = {}  # Store weights for each bucket
-# #         self.evaluate_fn = eval_fn  # Function for evaluating bucket models
-
-# # def fit_round(server_round: int) -> Dict:
-# #     """Send round number to client."""
-# #     return {"server_round": server_round}
-# # def get_evaluate_fn(model):
-# #     """Return an evaluation function for server-side evaluation."""
-# #     _, _, (X_test, y_test) = load_mnist_data()
-
-# #     def evaluate(server_round: int, parameters: NDArrays, config: Dict[str, Scalar]) -> Optional[Tuple[float, Dict[str, Scalar]]]:
-# #         utils.set_model_params(model, parameters)
-# #         y_pred = model.model.predict(X_test)
-# #         predicted = np.argmax(y_pred, axis=-1)
-# #         true_labels = np.argmax(y_test, axis=-1)
-# #         accuracy = np.equal(true_labels, predicted).mean()
-# #         loss = log_loss(true_labels, y_pred)
-# #         print(classification_report(true_labels, predicted))
-# #         return loss, {"accuracy": accuracy}
-
-# # # Start Flower server for five rounds of federated learning
-# # if __name__ == "__main__": 
-# #     def measure_memory():
-# #         # Measure the execution time
-# #         start_time = time.time()
-
-# #         # # RLWE SETTINGS with minimal changes
-# #         # WEIGHT_DECIMALS = 4  # Keep your current decimal precision
-# #         # model = CNN(WEIGHT_DECIMALS)
-# #         # utils.set_initial_params(model)
-# #         # params, _ = utils.get_flat_weights(model)
-# #         # print("Initial parameters", params[0:20])
-
-# #         # # Step 1: Calculate ring dimension (keep your current approach)
-# #         # num_weights = len(params)
-# #         # n = 2 ** math.ceil(math.log2(num_weights))
-# #         # print(f"n: {n}")
-
-# #         # # Step 2: Choose plaintext modulus t based on our testing
-# #         # num_clients = 6        #############################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         
-# #         #   # Your actual client count
-# #         # max_weight_value = 10 ** WEIGHT_DECIMALS  # 10,000 for 4 decimal places
-# #         # t = utils.next_prime(num_clients * max_weight_value * 4)  # Factor of 4 from our testing
-# #         # print(f"t: {t}")
-
-# #         # # Step 3: Choose ciphertext modulus q with optimal ratio to t
-# #         # #q = utils.next_prime(t * 800)  # 200x factor was optimal for 5-10 clients in our tests
-# #         # q = utils.next_prime(t * num_clients * 100)
-# #         # print(f"q: {q}")
-
-# #         # # Step 4: Set noise standard deviation
-# #         # std = 4  # Optimal for 5-10 clients in our tests
-# #         # print(f"std: {std}")
-
-# #         # # Initialize RLWE with these parameters
-# #         # rlwe = RLWE(n, q, t, std)
-
-
-
-# #         # Revised RLWE Parameter Calculation
-
-# #         WEIGHT_DECIMALS = 4  # Keep your current decimal precision
-# #         model = CNN(WEIGHT_DECIMALS)
-# #         utils.set_initial_params(model)
-# #         params, _ = utils.get_flat_weights(model)
-# #         print("Initial parameters", params[0:20])
-
-# #         # Step 1: Calculate ring dimension (keep your current approach)
-# #         num_weights = len(params)
-# #         n = 2 ** math.ceil(math.log2(num_weights))
-# #         print(f"n: {n}")
-
-# #         # Step 2: Choose plaintext modulus t based on our testing
-# #         num_clients = 6  # Your actual client count
-# #         max_weight_value = 10 ** WEIGHT_DECIMALS  # 10,000 for 4 decimal places
-# #         t = utils.next_prime(num_clients * max_weight_value * 4)  # Factor of 4 from our testing
-# #         print(f"t: {t}")
-
-# #         # Step 3: Choose ciphertext modulus q with optimal ratio to t
-# #         q = utils.next_prime(t * num_clients * 100)
-# #         print(f"q: {q}")
-
-# #         # Step 4: Set noise standard deviation
-# #         std = 4  # Optimal for 5-10 clients in our tests
-# #         print(f"std: {std}")
-
-# #         # Initialize RLWE with these parameters
-# #         rlwe = RLWE(n, q, t, std)       
-
-
-# #         # Custom Strategy
-# #         strategy = CustomFedAvg(
-# #             min_available_clients=num_clients,
-# #             min_fit_clients=num_clients,             
-# #             evaluate_fn=get_evaluate_fn(model),
-# #             on_fit_config_fn=fit_round,
-# #             rlwe_instance=rlwe,
-# #         )
-
-# #         # Define Server and Client Manager
-# #         client_manager = fl.server.SimpleClientManager()
-# #         server = fl.server.Server(
-# #             strategy=strategy,
-# #             client_manager=client_manager
-# #         )
-
-# #         # Start Server
-# #         # Start Server
-# #         fl.server.start_server(
-# #             server_address="0.0.0.0:8080",
-# #             server=server,
-# #             config=fl.server.ServerConfig(num_rounds=5),
-# #         )
-
-
-# #         # Calculate the execution time
-# #         execution_time = time.time() - start_time
-
-# #         # Print the execution time
-# #         print("Execution time:", execution_time)
-
-# #     mem_usage = memory_usage(measure_memory)
-# #     print("Memory usage (in MB):", max(mem_usage))
 
 
 
 
 
 
-# #new server with new data loader 
 
 
-# # #!/usr/bin/env python3
-# # # PROFILE_server.py
-
-# # import socket
-# # # Standard Libraries
-# # import importlib
-# # import math
-# # import os
-# # import sys
-# # import time
-# # import random
-# # import flwr as fl
-# # import numpy as np
-# # from typing import Dict, List, Optional, Tuple
-# # # Remove problematic import
-# # # from load_covid import load_mnist_data
-# # from flwr.common import NDArrays, Scalar
-# # from flwr.server.strategy import FedAvg
-# # from memory_profiler import memory_usage
-# # from rlwe_xmkckks import RLWE
-# # from sklearn.metrics import classification_report, log_loss
-# # import multiprocessing
-# # import threading
-# # from sklearn.metrics import classification_report, log_loss, precision_score, recall_score, f1_score, confusion_matrix
-# # # Replace with FederatedDataLoader
-# # from federated_data_loader import FederatedDataLoader
-
-# # # Get absolute paths to let a user run the script from anywhere
-# # current_directory = os.path.dirname(os.path.abspath(__file__))
-# # parent_directory = os.path.basename(current_directory)
-# # working_directory = os.getcwd()
-# # # Add parent directory to Python's module search path
-# # sys.path.append(os.path.join(current_directory, '..'))
-# # # Compare paths
-# # if current_directory == working_directory:
-# #     from cnn import CNN
-# #     import utils
-# # else:
-# #     # Add current directory to Python's module search path
-# #     CNN = importlib.import_module(f"{parent_directory}.cnn").CNN
-# #     import utils
 
 
-# # def fit_round(server_round: int) -> Dict:
-# #     """Send round number to client."""
-# #     return {"server_round": server_round}
 
 
-# # def get_evaluate_fn(model):
-# #     """Return an evaluation function for server-side evaluation."""
-# #     # Create data loader and get test data
-# #     data_loader = FederatedDataLoader(
-# #         dataset_name='mnist',
-# #         num_clients=6,  # Match your client count
-# #         seed=42
-# #     )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
-# #     # Get test data
-# #     X_test, y_test = data_loader.get_test_data()
-
-# #     # The 'evaluate' function will be called after every round
-# #     def evaluate(server_round: int, parameters: NDArrays, config: Dict[str, Scalar]) -> Optional[Tuple[float, Dict[str, Scalar]]]:
-# #         utils.set_model_params(model, parameters)
-
-# #         y_pred = model.model.predict(X_test)
-# #         predicted = np.argmax(y_pred, axis=-1)
-
-# #         # Already fixed:
-# #         true_labels = y_test  # The data loader returns labels in the right format
-
-# #         accuracy = np.equal(true_labels, predicted).mean()
-# #         loss = log_loss(y_test, y_pred)
-
-# #         print(classification_report(true_labels, predicted))
-
-# #         return loss, {"accuracy": accuracy}
-
-# #     return evaluate
-
-
-# # class CustomFedAvg(FedAvg):
-# #     def __init__(
-# #         self, 
-# #         rlwe_instance: RLWE, 
-# #         num_groups: int = 1,  # Default number of buckets/groups
-# #         eval_fn=None,
-# #         *args, 
-# #         **kwargs
-# #     ):
-# #         super().__init__(*args, **kwargs)
-# #         self.rlwe = rlwe_instance
-# #         self.num_groups = num_groups  # Number of buckets to divide clients into
-# #         self.bucket_models = {}  # Store models for each bucket
-# #         self.bucket_weights = {}  # Store weights for each bucket
-# #         self.evaluate_fn = eval_fn  # Function for evaluating bucket models
-
-
-# # # Start Flower server for five rounds of federated learning
-# # if __name__ == "__main__": 
-# #     def measure_memory():
-# #         # Measure the execution time
-# #         start_time = time.time()
-
-# #         # Revised RLWE Parameter Calculation
-# #         WEIGHT_DECIMALS = 4  # Keep your current decimal precision
-# #         model = CNN(WEIGHT_DECIMALS)
-# #         utils.set_initial_params(model)
-# #         params, _ = utils.get_flat_weights(model)
-# #         print("Initial parameters", params[0:20])
-
-# #         # Step 1: Calculate ring dimension (keep your current approach)
-# #         num_weights = len(params)
-# #         n = 2 ** math.ceil(math.log2(num_weights))
-# #         print(f"n: {n}")
-
-# #         # Step 2: Choose plaintext modulus t based on our testing
-# #         num_clients = 6  # Your actual client count
-# #         max_weight_value = 10 ** WEIGHT_DECIMALS  # 10,000 for 4 decimal places
-# #         t = utils.next_prime(num_clients * max_weight_value * 4)  # Factor of 4 from our testing
-# #         print(f"t: {t}")
-
-# #         # Step 3: Choose ciphertext modulus q with optimal ratio to t
-# #         q = utils.next_prime(t * num_clients * 100)
-# #         print(f"q: {q}")
-
-# #         # Step 4: Set noise standard deviation
-# #         std = 4  # Optimal for 5-10 clients in our tests
-# #         print(f"std: {std}")
-
-# #         # Initialize RLWE with these parameters
-# #         rlwe = RLWE(n, q, t, std)       
-
-# #         # Custom Strategy
-# #         strategy = CustomFedAvg(
-# #             min_available_clients=num_clients,
-# #             min_fit_clients=num_clients,             
-# #             evaluate_fn=get_evaluate_fn(model),
-# #             on_fit_config_fn=fit_round,
-# #             rlwe_instance=rlwe,
-# #         )
-
-# #         # Define Server and Client Manager
-# #         client_manager = fl.server.SimpleClientManager()
-# #         server = fl.server.Server(
-# #             strategy=strategy,
-# #             client_manager=client_manager
-# #         )
-
-# #         # Start Server
-# #         fl.server.start_server(
-# #             server_address="0.0.0.0:8080",
-# #             server=server,
-# #             config=fl.server.ServerConfig(num_rounds=10),
-# #         )
-
-# #         # Calculate the execution time
-# #         execution_time = time.time() - start_time
-
-# #         # Print the execution time
-# #         print("Execution time:", execution_time)
-
-# #     mem_usage = memory_usage(measure_memory)
-# #     print("Memory usage (in MB):", max(mem_usage))
 
 
 
-# # #!/usr/bin/env python3
-# # # PROFILE_server.py
-
-# # import socket
-# # # Standard Libraries
-# # import importlib
-# # import math
-# # import os
-# # import sys
-# # import time
-# # import random
-# # import flwr as fl
-# # import numpy as np
-# # from typing import Dict, List, Optional, Tuple
-# # # Remove problematic import
-# # # from load_covid import load_mnist_data
-# # from flwr.common import NDArrays, Scalar
-# # from flwr.server.strategy import FedAvg
-# # from memory_profiler import memory_usage
-# # from rlwe_xmkckks import RLWE
-# # from sklearn.metrics import classification_report, log_loss
-# # import multiprocessing
-# # import threading
-# # from sklearn.metrics import classification_report, log_loss, precision_score, recall_score, f1_score, confusion_matrix
-# # # Replace with FederatedDataLoader
-# # from federated_data_loader import FederatedDataLoader
-
-# # # Add these two imports for metrics saving
-# # import json
-# # import csv
-
-# # # Get absolute paths to let a user run the script from anywhere
-# # current_directory = os.path.dirname(os.path.abspath(__file__))
-# # parent_directory = os.path.basename(current_directory)
-# # working_directory = os.getcwd()
-# # # Add parent directory to Python's module search path
-# # sys.path.append(os.path.join(current_directory, '..'))
-# # # Compare paths
-# # if current_directory == working_directory:
-# #     from cnn import CNN
-# #     import utils
-# # else:
-# #     # Add current directory to Python's module search path
-# #     CNN = importlib.import_module(f"{parent_directory}.cnn").CNN
-# #     import utils
 
 
-# # def fit_round(server_round: int) -> Dict:
-# #     """Send round number to client."""
-# #     return {"server_round": server_round}
 
 
-# # def get_evaluate_fn(model):
-# #     """Return an evaluation function for server-side evaluation."""
-# #     # Create data loader and get test data
-# #     data_loader = FederatedDataLoader(
-# #         dataset_name='mnist',
-# #         num_clients=6,  # Match your client count
-# #         seed=42
-# #     )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
-# #     # Get test data
-# #     X_test, y_test = data_loader.get_test_data()
-
-# #     # The 'evaluate' function will be called after every round
-# #     def evaluate(server_round: int, parameters: NDArrays, config: Dict[str, Scalar]) -> Optional[Tuple[float, Dict[str, Scalar]]]:
-# #         utils.set_model_params(model, parameters)
-
-# #         y_pred = model.model.predict(X_test)
-# #         predicted = np.argmax(y_pred, axis=-1)
-
-# #         # Already fixed:
-# #         true_labels = y_test  # The data loader returns labels in the right format
-
-# #         accuracy = np.equal(true_labels, predicted).mean()
-# #         loss = log_loss(y_test, y_pred)
-
-# #         print(classification_report(true_labels, predicted))
-
-# #         # ADDITION: Save evaluation metrics
-# #         eval_metrics = {
-# #             'round': server_round,
-# #             'server_accuracy': accuracy,
-# #             'server_loss': loss,
-# #             'timestamp': time.time()
-# #         }
-# #         save_metrics(eval_metrics, "server_evaluation")
-
-# #         return loss, {"accuracy": accuracy}
-
-# #     return evaluate
 
 
-# # class CustomFedAvg(FedAvg):
-# #     def __init__(
-# #         self, 
-# #         rlwe_instance: RLWE, 
-# #         num_groups: int = 1,  # Default number of buckets/groups
-# #         eval_fn=None,
-# #         *args, 
-# #         **kwargs
-# #     ):
-# #         super().__init__(*args, **kwargs)
-# #         self.rlwe = rlwe_instance
-# #         self.num_groups = num_groups  # Number of buckets to divide clients into
-# #         self.bucket_models = {}  # Store models for each bucket
-# #         self.bucket_weights = {}  # Store weights for each bucket
-# #         self.evaluate_fn = eval_fn  # Function for evaluating bucket models
 
 
-# # # ADDITION: Simple metrics saving function
-# # def save_metrics(metrics, metric_type="server_metrics"):
-# #     """Save metrics to file with minimal overhead"""
-# #     session_id = getattr(save_metrics, 'session_id', f"server_session_{int(time.time())}")
-# #     save_metrics.session_id = session_id  # Store as function attribute
+
+
+
+
+
+
+
+
     
-# #     metrics_dir = f"metrics/{session_id}"
-# #     os.makedirs(metrics_dir, exist_ok=True)
     
-# #     # Save to JSONL file
-# #     jsonl_file = f"{metrics_dir}/{metric_type}.jsonl"
-# #     with open(jsonl_file, 'a') as f:
-# #         f.write(json.dumps(metrics) + '\n')
     
-# #     print(f"Metrics saved to {jsonl_file}")
 
 
-# # # Start Flower server for five rounds of federated learning
-# # if __name__ == "__main__": 
-# #     def measure_memory():
-# #         # Measure the execution time
-# #         start_time = time.time()
 
-# #         # Revised RLWE Parameter Calculation
-# #         WEIGHT_DECIMALS = 4  # Keep your current decimal precision
-# #         model = CNN(WEIGHT_DECIMALS)
-# #         utils.set_initial_params(model)
-# #         params, _ = utils.get_flat_weights(model)
-# #         print("Initial parameters", params[0:20])
 
-# #         # Step 1: Calculate ring dimension (keep your current approach)
-# #         num_weights = len(params)
-# #         n = 2 ** math.ceil(math.log2(num_weights))
-# #         print(f"n: {n}")
 
-# #         # Step 2: Choose plaintext modulus t based on our testing
-# #         num_clients = 6  # Your actual client count
-# #         max_weight_value = 10 ** WEIGHT_DECIMALS  # 10,000 for 4 decimal places
-# #         t = utils.next_prime(num_clients * max_weight_value * 4)  # Factor of 4 from our testing
-# #         print(f"t: {t}")
 
-# #         # Step 3: Choose ciphertext modulus q with optimal ratio to t
-# #         q = utils.next_prime(t * num_clients * 100)
-# #         print(f"q: {q}")
 
-# #         # Step 4: Set noise standard deviation
-# #         std = 4  # Optimal for 5-10 clients in our tests
-# #         print(f"std: {std}")
 
-# #         # Initialize RLWE with these parameters
-# #         rlwe = RLWE(n, q, t, std)
         
-# #         # ADDITION: Save initialization metrics
-# #         init_metrics = {
-# #             'weight_decimals': WEIGHT_DECIMALS,
-# #             'num_weights': num_weights,
-# #             'n': n,
-# #             'q': int(q),
-# #             't': int(t),
-# #             'std': std,
-# #             'num_clients': num_clients,
-# #             'timestamp': time.time()
-# #         }
-# #         save_metrics(init_metrics, "initialization")
 
-# #         # Custom Strategy
-# #         strategy = CustomFedAvg(
-# #             min_available_clients=num_clients,
-# #             min_fit_clients=num_clients,             
-# #             evaluate_fn=get_evaluate_fn(model),
-# #             on_fit_config_fn=fit_round,
-# #             rlwe_instance=rlwe,
-# #         )
 
-# #         # Define Server and Client Manager
-# #         client_manager = fl.server.SimpleClientManager()
-# #         server = fl.server.Server(
-# #             strategy=strategy,
-# #             client_manager=client_manager
-# #         )
 
-# #         # Start Server
-# #         fl.server.start_server(
-# #             server_address="0.0.0.0:8080",
-# #             server=server,
-# #             config=fl.server.ServerConfig(num_rounds=10),
-# #         )
 
-# #         # Calculate the execution time
-# #         execution_time = time.time() - start_time
 
-# #         # Print the execution time
-# #         print("Execution time:", execution_time)
         
-# #         # ADDITION: Save final metrics
-# #         final_metrics = {
-# #             'total_execution_time': execution_time,
-# #             'timestamp': time.time()
-# #         }
-# #         save_metrics(final_metrics, "execution_summary")
 
-# #     mem_usage = memory_usage(measure_memory)
-# #     max_mem = max(mem_usage)
-# #     print("Memory usage (in MB):", max_mem)
     
-# #     # ADDITION: Save memory usage
-# #     memory_metrics = {
-# #         'max_memory_mb': max_mem,
-# #         'timestamp': time.time()
-# #     }
-# #     save_metrics(memory_metrics, "memory_usage")
 
 
 
@@ -1326,7 +515,7 @@ if __name__ == "__main__":
         strategy = CustomFedAvg(
             min_available_clients=num_clients,  # CHANGED FROM hardcoded 6
             min_fit_clients=num_clients,        # CHANGED FROM hardcoded 6
-            evaluate_fn=None,  # TEMPORARILY DISABLED - was hanging on model.predict()
+            evaluate_fn=get_evaluate_fn(model, args.dataset),  # ✅ RE-ENABLED - real server evaluation
             on_fit_config_fn=fit_round,
             rlwe_instance=rlwe,
             num_buckets=args.num_buckets,
@@ -1382,8 +571,6 @@ if __name__ == "__main__":
 
 
 
-# #!/usr/bin/env python3
-# # Enhanced PROFILE_server.py with organized metrics
 
 # import socket
 # import importlib
@@ -1410,7 +597,6 @@ if __name__ == "__main__":
 # import argparse
 # from datetime import datetime
 
-# # Simple metrics manager (inline to avoid external dependencies)
 # class ExperimentMetricsManager:
 #     def __init__(self, dataset: str, num_clients: int, num_buckets: int, 
 #                  attack_type: str = "none", poison_ratio: float = 0.0, epsilon: float = 1.0):
@@ -1539,7 +725,6 @@ if __name__ == "__main__":
     
 
 
-# # Enable GPU memory growth
 # gpus = tf.config.list_physical_devices('GPU')
 # if gpus:
 #     try:
@@ -1549,7 +734,6 @@ if __name__ == "__main__":
 #     except RuntimeError as e:
 #         print("❌ Failed to set memory growth:", e)
 
-# # Get absolute paths
 # current_directory = os.path.dirname(os.path.abspath(__file__))
 # parent_directory = os.path.basename(current_directory)
 # working_directory = os.getcwd()

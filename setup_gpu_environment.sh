@@ -60,21 +60,39 @@ pip install tensorflow[and-cuda]
 echo "Installing other dependencies..."
 pip install -r requirements_gpu.txt
 
-# Install xMK-CKKS if available
+# Install custom Flower framework
 echo ""
-if [ -d "rlwe-xmkckks" ]; then
-    echo "Installing xMK-CKKS from local directory..."
-    cd rlwe-xmkckks
+echo "Installing custom Flower framework (fl-core-bin)..."
+if [ -d "fl-core-bin" ]; then
+    echo "Using local fl-core-bin directory..."
+    cd fl-core-bin
     pip install -e .
     cd ..
-    echo "✅ xMK-CKKS installed"
+    echo "✅ Custom Flower installed"
 else
-    echo "⚠️  xMK-CKKS directory not found."
-    echo "Please clone it manually:"
-    echo "  git clone https://github.com/MetisPrometheus/rlwe-xmkckks.git"
-    echo "  cd rlwe-xmkckks"
-    echo "  pip install -e ."
-    echo "  cd .."
+    echo "Cloning custom Flower from GitHub..."
+    git clone https://github.com/knowledge-bin/fl-core-bin.git
+    cd fl-core-bin
+    pip install -e .
+    cd ..
+    echo "✅ Custom Flower installed"
+fi
+
+# Install encryption library
+echo ""
+if [ -d "crypto-utils" ]; then
+    echo "Installing encryption library from local directory..."
+    cd crypto-utils
+    pip install -e .
+    cd ..
+    echo "✅ Encryption library installed"
+else
+    echo "Cloning encryption library from GitHub..."
+    git clone https://github.com/knowledge-bin/crypto-utils.git
+    cd crypto-utils
+    pip install -e .
+    cd ..
+    echo "✅ Encryption library installed"
 fi
 
 echo ""

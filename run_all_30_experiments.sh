@@ -10,9 +10,9 @@ echo "========================================"
 echo ""
 
 # Activate environment
-if [[ "$CONDA_DEFAULT_ENV" != "homomorphic" ]]; then
-    echo "⚠️  Please activate homomorphic environment:"
-    echo "   conda activate homomorphic"
+if [[ "$CONDA_DEFAULT_ENV" != "profile_gpu" ]]; then
+    echo "⚠️  Please activate profile_gpu environment:"
+    echo "   conda activate profile_gpu"
     exit 1
 fi
 
