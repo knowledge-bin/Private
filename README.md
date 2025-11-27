@@ -1,107 +1,93 @@
 # PROFILE: Privacy-Preserving Federated Learning with Robust Detection
 
-**Private Repository - Do Not Share**
+## Overview
 
-## 🎯 Overview
+PROFILE combines four defense mechanisms:
+- **Bucketing**: Client grouping for privacy amplification
+- **Multi-key CKKS Homomorphic Encryption**: Secure aggregation without plaintext exposure
+- **Differential Privacy**: Bucket-level noise injection with Moments Accountant
+- **Reputation-based Validators**: Byzantine detection through ensemble voting
 
-PROFILE is a federated learning framework that combines:
-- **Bucketing**: Groups similar clients to limit adversarial influence
-- **xMK-CKKS Homomorphic Encryption**: Secure aggregation without decryption
-- **Differential Privacy**: Gradient perturbation for privacy protection
-- **Byzantine Validators**: Reputation-based ensemble detection of malicious updates
+This repository contains the ablation study with 5 configurations (A-E) tested against label-flipping and min-max attacks.
 
-**Architecture**: All PROFILE features are **integrated into the custom Flower server** (3857 lines).  
-Reviewers will use this same integrated system by installing our modified `flower-xmkckks` package.
+## Repository Contents
 
-This repository contains the complete implementation for running ablation experiments on GPU servers.
+- **Core Implementation**: PROFILE_server.py (852 lines), Clean-client2.py (1046 lines)
+- **Ablation Framework**: 5 configurations × 2 attacks × 3 seeds = 30 experiments
+- **Models and Data**: LeNet-5 for MNIST, data partitioning utilities
+- **Analysis**: Automated metrics extraction and LaTeX table generation
 
-## 📦 What's Included
+## Quick Start
 
-- **Core FL System**: Server, client, model, data loading
-- **Ablation Framework**: Automated experiment runner for 30 configurations
-- **Analysis Tools**: Metrics collection, visualization, table generation
-- **Documentation**: Setup guides, integration instructions, troubleshooting
-
-## 🚀 Quick Start
-
-⚠️ **IMPORTANT**: PROFILE requires **custom Flower** with integrated PROFILE features (bucketing, validators, reputation, DP, HE).  
-📖 See `DEPENDENCIES.md` for why standard `pip install flwr` won't work - you need our `flower-xmkckks` repo.
+**Note**: PROFILE requires custom Flower framework with integrated features. See `DEPENDENCIES.md` for details.
 
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/profile-ablation.git
-cd profile-ablation
+git clone https://github.com/knowledge-bin/Private.git
+cd Private
 ```
 
-### 2. Install Dependencies (Automatic)
+### 2. Install Dependencies
 
 ```bash
-# This script installs custom Flower + RLWE-xMKCKKS automatically
-./setup_gpu_environment.sh
+bash setup_gpu_environment.sh
 ```
 
-**What it does:**
-- Creates conda environment with Python 3.10
-- Installs PyTorch + TensorFlow with GPU support
-- Clones and installs **custom Flower** from https://github.com/knowledge-bin/fl-core-bin
-- Clones and installs **encryption library** from https://github.com/knowledge-bin/crypto-utils
-- Installs all other dependencies
+Installs: Python 3.10 environment, PyTorch, TensorFlow, custom Flower (fl-core-bin), RLWE library (crypto-utils), and standard packages.
 
-### 3. Verify Setup
+### 3. Verify Installation
 
 ```bash
 python test_ablation_setup.py
 ```
 
-Expected: `✅ All 6 tests pass`
-
-**If tests fail**, see `DEPENDENCIES.md` for troubleshooting.
+Expected output: 6/6 tests pass. See `DEPENDENCIES.md` if tests fail.
 
 ### 4. Run Experiments
 
 ```bash
-# Single test experiment (~1 hour)
+# Single experiment (2 rounds for testing)
 python run_single_ablation_experiment.py \
     --config A_Bucketing_Only \
     --attack label_flip \
-    --seed 42
+    --seed 42 \
+    --num-rounds 2
 
-# All 30 experiments (30-50 hours)
-./run_all_30_experiments.sh
+# Full ablation study (30 experiments, 50 rounds each)
+bash run_all_30_experiments.sh
 ```
 
 ### 5. Generate Analysis
 
 ```bash
-python plot_ablation_results.py ablation_results_YYYYMMDD_HHMMSS/
+python plot_ablation_results.py ablation_results/batch_YYYYMMDD_HHMMSS/
 ```
 
-## 📚 Documentation
+## Documentation
 
-- **DEPENDENCIES.md** - ⭐ **START HERE**: Custom library requirements and installation
-- **README_ABLATION.md** - Detailed setup and usage guide
-- **START_HERE.md** - Quick reference for running experiments
-- **ABLATION_STUDY_README.md** - Complete experiment specification
-- **INTEGRATION_GUIDE.py** - Advanced integration instructions
+- **DEPENDENCIES.md** - Custom library installation guide  
+- **README_ABLATION.md** - Detailed ablation study methodology
+- **HE_COST_ANALYSIS.md** - Homomorphic encryption overhead analysis
+- **QUICK_START.md** - Minimal setup instructions
 
-## 🔬 Ablation Study
+## Ablation Study Design
 
-**Configuration**: 5 configs × 2 attacks × 3 seeds = 30 experiments
+30 experiments: 5 configurations × 2 attacks × 3 random seeds
 
-| Config | Components | Purpose |
-|--------|-----------|---------|
-| A | Bucketing + HE | Baseline |
-| B | Bucketing + HE + DP | Privacy impact |
-| C | Bucketing + HE + Validators | Detection effectiveness |
-| D | All components | Full system |
-| E | FedAvg (no defense) | Comparison baseline |
+| Config | Bucketing | HE | DP | Validators | Purpose |
+|--------|-----------|----|----|------------|----------|
+| A | ✓ | ✓ | × | × | Bucketing baseline |
+| B | ✓ | ✓ | ✓ | × | Privacy impact |
+| C | ✓ | ✓ | × | ✓ | Detection effectiveness |
+| D | ✓ | ✓ | ✓ | ✓ | Full PROFILE |
+| E | × | × | × | × | FedAvg baseline |
 
 **Attacks**: Label-flip, Min-Max  
 **Dataset**: MNIST with LeNet-5  
 **Parameters**: 50 clients, 10 per round, 50 rounds, 20% malicious
 
-## 📊 Expected Outputs
+## Expected Outputs
 
 After running experiments and analysis:
 
@@ -111,7 +97,7 @@ After running experiments and analysis:
 - `detection_f1.png` - Detection performance bar chart
 - `rebuttal_paragraph.txt` - Pre-written rebuttal text
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### GPU Out of Memory
 ```bash
@@ -133,7 +119,7 @@ python -c "import flwr, tensorflow, torch, numpy, sklearn"
 python -c "from rlwe_xmkckks import RLWE"
 ```
 
-## 📊 Performance Analysis
+## Performance Analysis
 
 ### Homomorphic Encryption Cost Analysis
 
@@ -153,25 +139,18 @@ grep "Bucket.*processing time" ablation_results/*/server.log
 - Bucket processing: ~4.3s per bucket per round
 - Total per round (16 buckets): ~71s (~1.2 minutes)
 
-📖 See `HE_COST_ANALYSIS.md` for detailed explanation and interpretation.
+See `HE_COST_ANALYSIS.md` for detailed explanation and interpretation.
 
-## 🔐 Security
+## Contact
 
-This is a **private repository** containing proprietary research code. Do not:
-- Share code publicly
-- Upload to public repositories
-- Distribute without permission
+For questions or issues, contact the authors.
 
-## 📧 Contact
+## License
 
-For questions or issues, contact the PROFILE research team.
-
-## 📄 License
-
-Proprietary - All Rights Reserved
+Provided for review purposes.
 
 ---
 
 **Version**: 1.0  
-**Last Updated**: November 23, 2025  
+**Last Updated**: January 2025  
 **Framework**: Flower 1.5+ with xMK-CKKS

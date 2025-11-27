@@ -4,7 +4,7 @@
 
 PROFILE requires **custom** versions of both Flower and RLWE-xMKCKKS libraries that include homomorphic encryption (HE) and differential privacy (DP) support for federated learning.
 
-⚠️ **CRITICAL**: You MUST use these custom versions. Standard `pip install flwr` will NOT work.
+**Note**: You must use these custom versions. Standard `pip install flwr` will not work.
 
 ---
 
@@ -13,16 +13,16 @@ PROFILE requires **custom** versions of both Flower and RLWE-xMKCKKS libraries t
 ### 1. Custom Flower Framework (fl-core-bin) - PROFILE-Enhanced
 
 **Repository**: https://github.com/knowledge-bin/fl-core-bin  
-**Purpose**: **Complete PROFILE system** with integrated bucketing, validators, reputation, DP, and HE  
+**Purpose**: Complete PROFILE system with integrated bucketing, validators, reputation, DP, and HE  
 **Key Features** (server.py - 3857 lines):
 - **Bucketing System**: Adaptive semantic bucketing for privacy amplification
-- **Validator Ensemble**: Reputation-based Byzantine detection (lines 1382-2514)
+- **Validator Ensemble**: Reputation-based Byzantine detection
 - **Differential Privacy**: Bucket-level DP with Moments Accountant composition
 - **Homomorphic Encryption**: xMK-CKKS threshold aggregation
 - **Reputation System**: Self-correcting validator selection (no pre-knowledge needed)
 - **Privacy Metrics**: Comprehensive logging and analysis tools
 
-⚠️ **CRITICAL**: This is NOT the base Flower framework. It contains the complete PROFILE implementation integrated into the Flower server module.
+**Note**: This is NOT the base Flower framework. It contains the complete PROFILE implementation integrated into the Flower server module.
 
 **Installation**:
 ```bash
@@ -68,9 +68,9 @@ python -c "from rlwe_xmkckks import RLWE, Rq; print('xMK-CKKS OK')"
 
 ---
 
-## Installation Order (CRITICAL!)
+## Installation Order
 
-**Follow this exact sequence**:
+**Follow this sequence**:
 
 ### Step 1: Create Python Environment
 ```bash
@@ -114,7 +114,7 @@ pip install numpy==1.24.3 pandas scikit-learn scipy matplotlib seaborn tqdm psut
 python test_ablation_setup.py
 ```
 
-**Expected**: All 6 tests pass ✅
+**Expected**: All 6 tests pass
 
 ---
 
@@ -129,8 +129,8 @@ python test_ablation_setup.py
 
 **Our Modifications** (`fl-core-bin`):
 - **Integrated PROFILE system** into Flower server (server.py: 532 → 3857 lines)
-- Bucketing system with adaptive client assignment (lines 2157+)
-- Reputation-based validator ensemble selection (lines 1382, 1416, 2414, 2513)
+- Bucketing system with adaptive client assignment
+- Reputation-based validator ensemble selection
 - Differential privacy with multiple composition methods (Moments Accountant, zCDP)
 - Privacy metrics collection and IEEE-standard visualization
 - Homomorphic encryption phases: public key setup, encrypted aggregation, threshold decryption
@@ -207,8 +207,8 @@ pip install -e .
 **Cause**: RLWE-xMKCKKS not installed  
 **Solution**: Clone and install
 ```bash
-git clone https://github.com/MetisPrometheus/rlwe-xmkckks.git
-cd rlwe-xmkckks
+git clone https://github.com/knowledge-bin/crypto-utils.git
+cd crypto-utils
 pip install -e .
 ```
 
@@ -237,17 +237,17 @@ If you're a reviewer wanting to run PROFILE experiments:
 
 ```bash
 # 1. Clone PROFILE repository
-git clone https://github.com/YOUR_USERNAME/profile-ablation.git
-cd profile-ablation
+git clone https://github.com/knowledge-bin/Private.git
+cd Private
 
 # 2. Run automated setup (installs everything)
-./setup_gpu_environment.sh
+bash setup_gpu_environment.sh
 
 # 3. Verify
 python test_ablation_setup.py
 
-# 4. Run single test experiment (~1 hour)
-python run_single_ablation_experiment.py --config A_Bucketing_Only --attack label_flip --seed 42
+# 4. Run single test experiment
+python run_single_ablation_experiment.py --config A_Bucketing_Only --attack label_flip --seed 42 --num-rounds 2
 ```
 
 The `setup_gpu_environment.sh` script handles all custom library installations automatically.
@@ -261,8 +261,8 @@ The `setup_gpu_environment.sh` script handles all custom library installations a
 | Python | 3.10 | Conda |
 | PyTorch | 2.0+ | Conda (with CUDA) |
 | TensorFlow | 2.16+ | pip |
-| **Flower (custom)** | **1.4.0** | **GitHub: MetisPrometheus/flower-xmkckks** |
-| **RLWE-xMKCKKS** | **custom** | **GitHub: MetisPrometheus/rlwe-xmkckks** |
+| **Flower (custom)** | **1.4.0** | **GitHub: knowledge-bin/fl-core-bin** |
+| **RLWE-xMKCKKS** | **custom** | **GitHub: knowledge-bin/crypto-utils** |
 | NumPy | 1.24.3 | pip |
 | scikit-learn | 1.3+ | pip |
 

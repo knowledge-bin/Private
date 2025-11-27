@@ -124,29 +124,12 @@ std: 4           (noise standard deviation)
 ## Comparison with Non-HE Approaches
 
 | Approach | Aggregation Time (50 clients) | Privacy |
-|----------|------------------------------|---------|
-| Plain FedAvg | 0.0002s | None |
+|----------|------------------------------|------|
+| Plain FedAvg | <0.001s | None |
 | PROFILE (HE) | ~70s | Strong (multi-key CKKS) |
-| **Overhead** | **350,000×** | **Full encryption** |
+| **Overhead** | **~70,000×** | **Full encryption** |
 
-**Key Insight:** The ~70s HE overhead per round is acceptable because:
-1. Provides strong cryptographic privacy guarantees
-2. Training time dominates (minutes per client)
-3. One-time public key setup amortized over 50 rounds
-
-## Communication Cost Analysis
-
-While not directly logged, HE communication costs can be estimated:
-
-**Ciphertext Size:**
-- Each encrypted parameter: ~O(n × log q) bits
-- For n=262144, q=10^10: ~8.6 MB per ciphertext
-- Model with 61,706 parameters → ~531 GB total (with batching optimizations)
-
-**Actual Communication:**
-- Clients send encrypted updates to server
-- Server sends global model to clients
-- No raw data transmission (privacy preserved)
+Note: HE overhead is per-round, while client training typically takes minutes.
 
 ## Recommendations for Reviewers
 
@@ -173,9 +156,5 @@ While not directly logged, HE communication costs can be estimated:
 ## References
 
 - RLWE-xMKCKKS implementation: `https://github.com/knowledge-bin/crypto-utils`
-- Multi-key CKKS paper: [Include citation from your paper]
+- Multi-key CKKS scheme for secure federated aggregation
 - Timing logs: `ablation_results/batch_*/*/server.log`
-
----
-
-**Note:** All timing measurements are from CPU execution. GPU acceleration for HE operations is an area for future work.
