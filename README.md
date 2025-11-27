@@ -152,7 +152,6 @@ grep "Bucket.*processing time" ablation_results/*/server.log
 - Public key aggregation (one-time): ~41.7s for 50 clients
 - Bucket processing: ~4.3s per bucket per round
 - Total per round (16 buckets): ~71s (~1.2 minutes)
-- Overhead vs plain FedAvg: ~357,000× (acceptable for cryptographic privacy)
 
 📖 See `HE_COST_ANALYSIS.md` for detailed explanation and interpretation.
 
