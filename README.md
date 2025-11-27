@@ -133,6 +133,29 @@ python -c "import flwr, tensorflow, torch, numpy, sklearn"
 python -c "from rlwe_xmkckks import RLWE"
 ```
 
+## 📊 Performance Analysis
+
+### Homomorphic Encryption Cost Analysis
+
+PROFILE automatically logs HE performance metrics. To analyze:
+
+```bash
+# Automated analysis of all experiments
+python analyze_he_costs.py
+
+# Or manually from logs
+grep "Public Key Aggregation Time" ablation_results/*/server.log
+grep "Bucket.*processing time" ablation_results/*/server.log
+```
+
+**Expected HE Overhead:**
+- Public key aggregation (one-time): ~41.7s for 50 clients
+- Bucket processing: ~4.3s per bucket per round
+- Total per round (16 buckets): ~71s (~1.2 minutes)
+- Overhead vs plain FedAvg: ~357,000× (acceptable for cryptographic privacy)
+
+📖 See `HE_COST_ANALYSIS.md` for detailed explanation and interpretation.
+
 ## 🔐 Security
 
 This is a **private repository** containing proprietary research code. Do not:
