@@ -95,7 +95,6 @@ After running experiments and analysis:
 - `ablation_table.tex` - LaTeX table for manuscript
 - `accuracy_*.png` - Accuracy plots over rounds
 - `detection_f1.png` - Detection performance bar chart
-- `rebuttal_paragraph.txt` - Pre-written rebuttal text
 
 ## Troubleshooting
 
