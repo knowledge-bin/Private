@@ -1,1 +1,0 @@
-{"client_id": 43, "is_malicious": false, "training_samples": 1080, "validation_samples": 6000, "test_samples": 10000, "dataset": "mnist", "model_length": 212542, "attack_config": null, "initialization_time": 1764275884.2745328, "bucket_detector_config": {"sensitivity": 1.0, "vote_threshold": 0.25, "warmup_rounds": 1}, "timestamp": 1764275884.274564}

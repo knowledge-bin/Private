@@ -1,2 +1,0 @@
-client_id,data_samples_used,is_malicious,model_parameters_count,round,timestamp,training_accuracy,training_epochs,training_loss,training_time,val_accuracy,val_loss
-1,1080,False,212542,1,1764275950.448958,0.2666666805744171,1,2.3547441959381104,8.922492265701294,0.49016666412353516,2.0286707878112793

@@ -1,1 +1,0 @@
-{"round": 1, "client_id": 10, "is_malicious": false, "training_time": 13.725027561187744, "training_loss": 2.3517274856567383, "training_accuracy": 0.22499999403953552, "val_loss": 2.043642520904541, "val_accuracy": 0.37700000405311584, "data_samples_used": 1080, "model_parameters_count": 212542, "training_epochs": 1, "timestamp": 1764275940.0462654}
