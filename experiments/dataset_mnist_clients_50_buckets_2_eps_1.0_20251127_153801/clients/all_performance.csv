@@ -1,0 +1,12 @@
+attacks_performed,bucket_evaluations_completed,client_id,experiment_name,final_model_accuracy,memory_usage_mb,session_id,system_info_attack_type,system_info_dataset,system_info_is_malicious,system_info_num_buckets,system_info_num_clients,timestamp,total_execution_time,training_rounds_completed
+0,0,35,dataset_mnist_clients_50_buckets_2_eps_1.0_20251127_153801,0,1166.11328125,session_1764275882_35,none,mnist,False,2,50,1764275964.1347206,81.64786839485168,1
+0,0,30,dataset_mnist_clients_50_buckets_2_eps_1.0_20251127_153801,0,1112.73046875,session_1764275882_30,none,mnist,False,2,50,1764275964.1486652,81.24342012405396,1
+0,0,33,dataset_mnist_clients_50_buckets_2_eps_1.0_20251127_153801,0,1156.62109375,session_1764275882_33,none,mnist,False,2,50,1764275964.160297,81.44041991233826,1
+0,0,24,dataset_mnist_clients_50_buckets_2_eps_1.0_20251127_153801,0,1095.1328125,session_1764275882_24,none,mnist,False,2,50,1764275964.1872983,81.42945170402527,1
+0,0,41,dataset_mnist_clients_50_buckets_2_eps_1.0_20251127_153801,0,1100.37109375,session_1764275883_41,none,mnist,False,2,50,1764275964.2225218,81.0340576171875,1
+0,0,34,dataset_mnist_clients_50_buckets_2_eps_1.0_20251127_153801,0,1137.078125,session_1764275883_34,none,mnist,False,2,50,1764275964.2374065,81.16484832763672,1
+0,0,36,dataset_mnist_clients_50_buckets_2_eps_1.0_20251127_153801,0,1084.0234375,session_1764275883_36,none,mnist,False,2,50,1764275964.2375655,81.13100099563599,1
+0,0,39,dataset_mnist_clients_50_buckets_2_eps_1.0_20251127_153801,0,1073.6953125,session_1764275883_39,none,mnist,False,2,50,1764275964.237776,81.17576932907104,1
+0,0,32,dataset_mnist_clients_50_buckets_2_eps_1.0_20251127_153801,0,1165.28125,session_1764275882_32,none,mnist,False,2,50,1764275964.2380912,81.68922090530396,1
+0,0,42,dataset_mnist_clients_50_buckets_2_eps_1.0_20251127_153801,0,1107.88671875,session_1764275882_42,none,mnist,False,2,50,1764275964.2383404,81.24680042266846,1
+0,0,26,dataset_mnist_clients_50_buckets_2_eps_1.0_20251127_153801,0,1144.93359375,session_1764275882_26,none,mnist,False,2,50,1764275964.2386544,81.56466841697693,1

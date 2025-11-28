@@ -143,7 +143,7 @@ See `HE_COST_ANALYSIS.md` for detailed explanation and interpretation.
 
 ## Contact
 
-For questions or issues, contact the authors.
+For questions or issues, please open an issue in the repository.
 
 ## License
 

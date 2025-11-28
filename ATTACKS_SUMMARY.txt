@@ -1,0 +1,118 @@
+================================================================================
+ATTACKS & EXPERIMENTS - QUICK VERIFICATION
+================================================================================
+
+✅ ALL ATTACKS FROM MAIN PAPER ARE INCLUDED IN REVIEWER PACKAGE
+
+================================================================================
+PRIMARY ATTACKS (30-Experiment Ablation Study)
+================================================================================
+
+1. ✅ Label Flipping (label_flip)
+   - Implementation: Full
+   - Location: ablation_mnist_lenet.py line 111-116
+   - Type: Data poisoning
+   - Method: Flip labels (y+1) % 10
+   - Used in: All 30 experiments
+
+2. ✅ Min-Max (min_max)
+   - Implementation: Full  
+   - Location: ablation_mnist_lenet.py line 117-122, strong_attacks.py
+   - Type: Model poisoning
+   - Method: Gradient amplification (strength=2.0)
+   - Used in: All 30 experiments
+
+================================================================================
+ADDITIONAL ATTACKS (Available for Extended Experiments)
+================================================================================
+
+3. ⚪ FANG (fang)
+   - Status: Implemented, available
+   - Location: strong_attacks.py (FangAttack class)
+   - Not in 30-experiment study, but reviewers can use it
+
+4. ⚪ Targeted (targeted)
+   - Status: Implemented, available
+   - Location: Clean-client2.py line 946
+
+5. ⚪ Random (random)
+   - Status: Implemented, available
+   - Location: Clean-client2.py line 946
+
+6. ⚪ Backdoor (backdoor)
+   - Status: Implemented, available
+   - Location: Clean-client2.py line 946
+
+================================================================================
+EXPERIMENT COVERAGE
+================================================================================
+
+Formula: 5 configs × 2 attacks × 3 seeds = 30 experiments
+
+Configurations:
+  A. Bucketing Only
+  B. Bucketing + DP
+  C. Bucketing + Validators
+  D. PROFILE Full (all components)
+  E. FedAvg Baseline (no PROFILE)
+
+Attacks:
+  - label_flip
+  - min_max
+
+Seeds:
+  - 42
+  - 123
+  - 456
+
+================================================================================
+PAPER vs REVIEWER PACKAGE COMPARISON
+================================================================================
+
+Aspect               | Paper        | Reviewer Pkg | Match
+---------------------|--------------|--------------|------
+Primary Attack 1     | Label Flip   | label_flip   | ✅
+Primary Attack 2     | Min-Max      | min_max      | ✅
+Malicious %          | 30%          | 30% (15/50)  | ✅
+Total Clients        | 50           | 50           | ✅
+Training Rounds      | 50           | 50           | ✅
+Configurations       | 5 ablations  | 5 (A-E)      | ✅
+Seeds                | Multiple     | 3 seeds      | ✅
+Dataset              | MNIST        | MNIST        | ✅
+
+Match Rate: 8/8 = 100% ✅
+
+================================================================================
+HOW TO RUN
+================================================================================
+
+# Single experiment:
+python run_single_ablation_experiment.py \
+  --config D_PROFILE_Full \
+  --attack label_flip \
+  --seed 42
+
+# All 30 experiments (~15 hours):
+bash run_all_30_experiments.sh
+
+================================================================================
+VERIFICATION
+================================================================================
+
+Check available attacks:
+  python Clean-client2.py --help | grep -A 6 "attack_type"
+
+Check ablation attacks:
+  python run_single_ablation_experiment.py --help | grep -A 3 "attack"
+
+Verify implementations:
+  grep -n "class.*Attack" strong_attacks.py
+
+================================================================================
+STATUS: ✅ COMPLETE
+================================================================================
+
+All attacks and experiments from the main paper are fully implemented
+and reproducible in the reviewer package.
+
+Last verified: November 27, 2025

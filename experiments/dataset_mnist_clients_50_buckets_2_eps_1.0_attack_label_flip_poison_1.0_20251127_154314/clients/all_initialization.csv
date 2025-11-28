@@ -1,0 +1,2 @@
+attack_config_poison_ratio,attack_config_source_class,attack_config_target_class,attack_config_type,bucket_detector_config_sensitivity,bucket_detector_config_vote_threshold,bucket_detector_config_warmup_rounds,client_id,dataset,initialization_time,is_malicious,model_length,test_samples,timestamp,training_samples,validation_samples
+1.0,None,1,label_flip,1.0,0.25,1,13,mnist,1764276196.59023,True,212542,10000,1764276196.5903409,1080,6000

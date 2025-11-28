@@ -131,8 +131,8 @@ class SingleExperimentRunner:
         
         server_log = self.exp_dir / 'server.log'
         
-        # Use homomorphic conda environment
-        conda_python = '/home/bderessa/anaconda3/envs/homomorphic/bin/python'
+        # Use system Python or conda environment
+        conda_python = 'python'
         
         # Build server command
         cmd = [
@@ -188,8 +188,8 @@ class SingleExperimentRunner:
             
             client_log = self.exp_dir / f'client_{client_id}.log'
             
-            # Use homomorphic conda environment
-            conda_python = '/home/bderessa/anaconda3/envs/homomorphic/bin/python'
+            # Use system Python or conda environment
+            conda_python = 'python'
             
             # Build client command
             cmd = [

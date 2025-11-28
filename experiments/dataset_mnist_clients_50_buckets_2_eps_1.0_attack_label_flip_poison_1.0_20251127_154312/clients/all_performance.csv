@@ -1,0 +1,6 @@
+attacks_performed,bucket_evaluations_completed,client_id,experiment_name,final_model_accuracy,memory_usage_mb,session_id,system_info_attack_type,system_info_dataset,system_info_is_malicious,system_info_num_buckets,system_info_num_clients,timestamp,total_execution_time,training_rounds_completed
+1,16,7,dataset_mnist_clients_50_buckets_2_eps_1.0_attack_label_flip_poison_1.0_20251127_154312,0,1866.203125,session_1764276193_7,label_flip,mnist,True,2,50,1764278183.5694995,1989.685142993927,19
+1,32,11,dataset_mnist_clients_50_buckets_2_eps_1.0_attack_label_flip_poison_1.0_20251127_154312,0,1894.65625,session_1764276194_11,label_flip,mnist,True,2,50,1764278183.5774856,1989.181496143341,19
+1,32,8,dataset_mnist_clients_50_buckets_2_eps_1.0_attack_label_flip_poison_1.0_20251127_154312,0.1447,1810.55859375,session_1764276193_8,label_flip,mnist,True,2,50,1764278183.6258311,1989.667814731598,20
+1,16,12,dataset_mnist_clients_50_buckets_2_eps_1.0_attack_label_flip_poison_1.0_20251127_154312,0,1865.91796875,session_1764276194_12,label_flip,mnist,True,2,50,1764278183.6422544,1989.4994382858276,19
+1,32,9,dataset_mnist_clients_50_buckets_2_eps_1.0_attack_label_flip_poison_1.0_20251127_154312,0,1858.06640625,session_1764276194_9,label_flip,mnist,True,2,50,1764278183.7346385,1989.7177896499634,19

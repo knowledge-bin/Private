@@ -1,0 +1,7 @@
+attack_config,bucket_detector_config_sensitivity,bucket_detector_config_vote_threshold,bucket_detector_config_warmup_rounds,client_id,dataset,initialization_time,is_malicious,model_length,test_samples,timestamp,training_samples,validation_samples
+None,1.0,0.25,1,17,mnist,1764276195.9287949,False,212542,10000,1764276195.9288526,1080,6000
+None,1.0,0.25,1,22,mnist,1764276195.9609141,False,212542,10000,1764276195.9609566,1080,6000
+None,1.0,0.25,1,25,mnist,1764276196.2333362,False,212542,10000,1764276196.2333872,1080,6000
+None,1.0,0.25,1,15,mnist,1764276196.3280175,False,212542,10000,1764276196.3281736,1080,6000
+None,1.0,0.25,1,19,mnist,1764276196.505611,False,212542,10000,1764276196.5056643,1080,6000
+None,1.0,0.25,1,18,mnist,1764276196.6481647,False,212542,10000,1764276196.6482542,1080,6000

@@ -1,0 +1,6 @@
+attack_config_poison_ratio,attack_config_source_class,attack_config_target_class,attack_config_type,bucket_detector_config_sensitivity,bucket_detector_config_vote_threshold,bucket_detector_config_warmup_rounds,client_id,dataset,initialization_time,is_malicious,model_length,test_samples,timestamp,training_samples,validation_samples
+1.0,None,1,label_flip,1.0,0.25,1,7,mnist,1764276193.890822,True,212542,10000,1764276193.8909266,1080,6000
+1.0,None,1,label_flip,1.0,0.25,1,8,mnist,1764276193.9629998,True,212542,10000,1764276193.9630892,1080,6000
+1.0,None,1,label_flip,1.0,0.25,1,9,mnist,1764276194.0232532,True,212542,10000,1764276194.023337,1080,6000
+1.0,None,1,label_flip,1.0,0.25,1,12,mnist,1764276194.149347,True,212542,10000,1764276194.1494567,1080,6000
+1.0,None,1,label_flip,1.0,0.25,1,11,mnist,1764276194.4010928,True,212542,10000,1764276194.401189,1080,6000

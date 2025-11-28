@@ -1,0 +1,161 @@
+================================================================================
+FOR REVIEWERS - IEEE SaTML 2026 Submission
+================================================================================
+
+REPOSITORY TO CLONE:
+https://github.com/knowledge-bin/Private
+
+This is the ONLY repository you need. Everything is included.
+
+================================================================================
+QUICK START (5 minutes setup)
+================================================================================
+
+1. Clone the repository:
+   git clone https://github.com/knowledge-bin/Private.git
+   cd Private
+
+2. Setup environment (one command):
+   bash setup_gpu_environment.sh
+
+   This automatically installs:
+   - Custom Flower framework (fl-core-bin) with PROFILE enhancements
+   - RLWE encryption library (crypto-utils)
+   - All Python dependencies
+
+3. Verify installation (2 minutes):
+   python test_ablation_setup.py
+
+   Expected: 6/6 tests PASS
+
+4. Run single experiment (~15 minutes):
+   python run_single_ablation_experiment.py \
+     --config D_PROFILE_Full \
+     --attack label_flip \
+     --seed 42 \
+     --num-rounds 2
+
+5. Run all 30 experiments (~15 hours):
+   bash run_all_30_experiments.sh
+
+================================================================================
+WHAT'S INCLUDED IN THIS REPOSITORY
+================================================================================
+
+Core Implementation:
+✅ PROFILE_server.py (852 lines) - Complete FL server with:
+   - Bucketing system
+   - Differential privacy (Moments Accountant)
+   - Reputation-based validator selection
+   - Homomorphic encryption coordination
+
+✅ Clean-client2.py (1046 lines) - Complete FL client with:
+   - RLWE encryption/decryption
+   - All attack types (label_flip, min_max, fang, backdoor, etc.)
+   - Data poisoning
+   - Enhanced metrics tracking
+
+✅ Supporting libraries:
+   - cnn.py - Multi-dataset CNN models
+   - utils.py - RLWE utilities
+   - federated_data_loader.py - Data partitioning
+   - detect.py - Anomaly detection
+   - strong_attacks.py - Attack implementations
+
+Ablation Study:
+✅ 5 Configurations (A, B, C, D, E)
+✅ 2 Attacks (label_flip, min_max)
+✅ 3 Seeds (42, 123, 456)
+✅ Total: 30 experiments
+
+Documentation:
+✅ README.md - Quick start guide
+✅ DEPENDENCIES.md - Why custom libraries are needed
+✅ QUICK_START.md - Step-by-step instructions
+✅ Multiple other guides
+
+================================================================================
+DEPENDENCIES (AUTO-INSTALLED)
+================================================================================
+
+The setup script automatically clones and installs:
+
+1. Custom Flower Framework (fl-core-bin):
+   Repository: https://github.com/knowledge-bin/fl-core-bin
+   Why: Contains PROFILE enhancements (bucketing, DP, validators, HE)
+   Installed as: flwr==1.4.0
+
+2. RLWE Encryption Library (crypto-utils):
+   Repository: https://github.com/knowledge-bin/crypto-utils
+   Why: Multi-key CKKS homomorphic encryption
+   Installed as: rlwe_xmkckks==0.1
+
+Note: You don't need to manually clone these - the setup script does it!
+
+================================================================================
+SYSTEM REQUIREMENTS
+================================================================================
+
+Required:
+- Python 3.9+ (we use 3.10)
+- conda or venv
+- 8GB+ RAM
+- ~10GB disk space
+
+Optional (for faster training):
+- NVIDIA GPU with CUDA support
+- CPU-only mode works fine (just slower)
+
+================================================================================
+EXPECTED RUNTIME
+================================================================================
+
+Setup: 5 minutes
+Verification tests: 2 minutes
+Single experiment (2 rounds): 10-15 minutes
+Single experiment (50 rounds): 2-3 hours
+All 30 experiments: ~15 hours
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+If you encounter issues:
+
+1. Check that setup script completed successfully:
+   python -c "import flwr; print(flwr.__version__)"
+   Should output: 1.4.0
+
+2. Verify RLWE library:
+   python -c "import rlwe_xmkckks; print('OK')"
+   Should output: OK
+
+3. Re-run setup if needed:
+   bash setup_gpu_environment.sh
+
+4. Check TROUBLESHOOTING.md for common issues
+
+================================================================================
+VERIFICATION CHECKLIST
+================================================================================
+
+Before running experiments, verify:
+
+□ git clone successful
+□ setup_gpu_environment.sh completed without errors
+□ test_ablation_setup.py shows 6/6 tests PASS
+□ Custom Flower installed (version 1.4.0)
+□ RLWE library installed
+□ All Python dependencies installed
+
+================================================================================
+CONTACT
+================================================================================
+
+For questions about the code or experiments, please refer to the
+documentation files or open an issue on the GitHub repository.
+
+All code is provided for reproducibility and verification of the
+results presented in the paper.
+
+================================================================================

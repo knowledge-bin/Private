@@ -1,0 +1,4 @@
+attack_preparation_time,attack_start_time,attack_type,client_id,original_label_distribution_0,original_label_distribution_1,original_label_distribution_2,original_label_distribution_3,original_label_distribution_4,original_label_distribution_5,original_label_distribution_6,original_label_distribution_7,original_label_distribution_8,original_label_distribution_9,poison_ratio,poisoned_label_distribution_1,round,samples_modified,target_class,timestamp
+0.01339101791381836,1764278062.2770514,label_flip,0,104,115,105,101,92,90,112,131,121,109,1.0,1080,10,965,1,1764278062.2906163
+0.009596586227416992,1764278063.109282,label_flip,2,113,106,102,112,99,106,116,107,111,108,1.0,1080,10,974,1,1764278063.118973
+0.019207477569580078,1764278063.6237557,label_flip,1,77,126,129,113,104,93,114,118,91,115,1.0,1080,10,954,1,1764278063.6430337

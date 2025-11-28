@@ -37,7 +37,7 @@ A **clean repository** in `profile-ablation-clean/` with only essential files (2
 ### 2️⃣ Push Code from Your Machine
 
 ```bash
-cd /home/bderessa/NEW_FL/profile-ablation-clean
+cd /path/to/profile-ablation-clean
 
 # Initialize git
 git init
@@ -106,7 +106,7 @@ scp -r user@gpu-server:~/profile-ablation/ablation_results_*/ ./results/
 ### On Local Machine (Development)
 ```bash
 # Update code
-cd /home/bderessa/NEW_FL/profile-ablation-clean
+cd /path/to/profile-ablation-clean
 git add .
 git commit -m "Update: description"
 git push
